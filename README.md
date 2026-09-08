@@ -1,4 +1,4 @@
---Script By @Azaleia_Scripts in Youtube
+--Script Made By @Azaleia_Scripts In YouTube
 
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
@@ -20,7 +20,9 @@ tab:CreateToggle({
         Freddy = Color3.fromRGB(101, 67, 33),
         Foxy = Color3.fromRGB(255, 0, 0),
         Bonnie = Color3.fromRGB(0, 100, 255),
-        Chica = Color3.fromRGB(255, 255, 0)
+        Chica = Color3.fromRGB(255, 255, 0),
+        ["Golden Freddy"] = Color3.fromRGB(255, 215, 0),
+        GoldenFreddy = Color3.fromRGB(255, 215, 0)
     }
 
     Env.AnimatronicESPEnabled = value
@@ -32,7 +34,7 @@ tab:CreateToggle({
         if not Color then return end
 
         local Humanoid = Model:FindFirstChild("Humanoid", true)
-        if not Humanoid then return end
+        if not Humanoid or not Humanoid:IsA("Humanoid") then return end
 
         local Highlight = Model:FindFirstChild("AnimatronicESP")
         local Billboard = Model:FindFirstChild("AnimatronicName")
@@ -46,14 +48,6 @@ tab:CreateToggle({
         end
     end
 
-    -- Atualiza TODOS, inclusive os que estão andando
-    for _, Object in ipairs(Workspace:GetDescendants()) do
-        if Object:IsA("Model") then
-            UpdateModel(Object)
-        end
-    end
-
-    -- Cria ESP somente se ainda não existir
     local function ApplyESP(Model)
         if not Env.AnimatronicESPEnabled then return end
         if not Model:IsA("Model") then return end
@@ -62,7 +56,7 @@ tab:CreateToggle({
         if not Color then return end
 
         local Humanoid = Model:FindFirstChild("Humanoid", true)
-        if not Humanoid then return end
+        if not Humanoid or not Humanoid:IsA("Humanoid") then return end
 
         local Root = Model:FindFirstChild("HumanoidRootPart", true)
             or Model:FindFirstChild("Head", true)
@@ -109,7 +103,18 @@ tab:CreateToggle({
         Billboard.Enabled = true
     end
 
-    -- Só cria a conexão uma vez
+    -- Atualiza os que já existem
+    for _, Object in ipairs(Workspace:GetDescendants()) do
+        if Object:IsA("Model") then
+            if value then
+                ApplyESP(Object)
+            else
+                UpdateModel(Object)
+            end
+        end
+    end
+
+    -- Cria apenas uma conexão
     if not Env.AnimatronicESPConnection then
         Env.AnimatronicESPConnection = Workspace.DescendantAdded:Connect(function(Object)
             task.wait()
@@ -118,23 +123,18 @@ tab:CreateToggle({
                 return
             end
 
-            local Model = Object:IsA("Model")
-                and Object
-                or Object:FindFirstAncestorOfClass("Model")
+            local Model
+
+            if Object:IsA("Model") then
+                Model = Object
+            else
+                Model = Object:FindFirstAncestorOfClass("Model")
+            end
 
             if Model then
                 ApplyESP(Model)
             end
         end)
-    end
-
-    -- Quando ligar, garante que todos apareçam
-    if value then
-        for _, Object in ipairs(Workspace:GetDescendants()) do
-            if Object:IsA("Model") then
-                ApplyESP(Object)
-            end
-        end
     end
 end
 })
@@ -238,27 +238,43 @@ tab:CreateToggle({
     name = "Itens ESP",
     callback = function(value)
     local Workspace = game:GetService("Workspace")
+    local Players = game:GetService("Players")
+
     local DarkBlue = Color3.fromRGB(0, 0, 80)
 
-    local function RemoveESP(Item)
-        local Highlight = Item:FindFirstChild("ItemESP")
-        if Highlight then Highlight:Destroy() end
-
-        local Billboard = Item:FindFirstChild("ItemNameESP")
-        if Billboard then Billboard:Destroy() end
+    local function IsPlayerCharacter(Object)
+        for _, Player in ipairs(Players:GetPlayers()) do
+            if Player.Character == Object then
+                return true
+            end
+        end
+        return false
     end
 
     local function ApplyESP(Item)
-        if Item.Name == "Fuse" then return end
-        if Item.Parent ~= Workspace then return end
-        if not Item:IsA("Model") and not Item:IsA("Tool") then return end
+        -- Ignora Fuse
+        if Item.Name == "Fuse" then
+            return
+        end
 
+        -- Somente objetos diretamente no Workspace
+        if Item.Parent ~= Workspace then
+            return
+        end
+
+        -- Ignora personagens
+        if IsPlayerCharacter(Item) then
+            return
+        end
+
+        -- Precisa ter Handle
         local Handle = Item:FindFirstChild("Handle", true)
-        local Script = Item:FindFirstChildWhichIsA("Script", true)
 
-        if not Handle or not Script then return end
-        if not Handle:IsA("BasePart") then return end
+        if not Handle or not Handle:IsA("BasePart") then
+            return
+        end
 
+        -- ESP
         local Highlight = Item:FindFirstChild("ItemESP")
 
         if not Highlight then
@@ -272,6 +288,7 @@ tab:CreateToggle({
             Highlight.Parent = Item
         end
 
+        -- Nome
         local Billboard = Item:FindFirstChild("ItemNameESP")
 
         if not Billboard then
@@ -298,21 +315,27 @@ tab:CreateToggle({
         Billboard.Enabled = value
     end
 
-    -- TODOS os itens existentes
+    -- Todos os itens que JÁ estão diretamente no Workspace
     for _, Item in ipairs(Workspace:GetChildren()) do
         ApplyESP(Item)
     end
 
-    -- NOVOS itens
+    -- Novos itens que entrarem diretamente no Workspace
     Workspace.ChildAdded:Connect(function(Item)
         task.wait(0.1)
         ApplyESP(Item)
     end)
 
-    -- Remove o ESP quando o item for pego
+    -- Remove o ESP quando o item sair do Workspace
     Workspace.ChildRemoved:Connect(function(Item)
-        if Item.Name ~= "Fuse" then
-            RemoveESP(Item)
+        local Highlight = Item:FindFirstChild("ItemESP")
+        if Highlight then
+            Highlight:Destroy()
+        end
+
+        local Billboard = Item:FindFirstChild("ItemNameESP")
+        if Billboard then
+            Billboard:Destroy()
         end
     end)
 end
@@ -362,5 +385,27 @@ tab:CreateButton({
         3.404323,
         148.619400
     )
+end
+})
+
+local tab = window:CreateTab({ name = "Misc"})
+
+
+tab:CreateButton({
+    name = "FullBlight",
+    callback = function()
+    local Lighting = game:GetService("Lighting")
+
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 14
+    Lighting.FogEnd = 100000
+    Lighting.GlobalShadows = false
+
+    local Atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+    if Atmosphere then
+        Atmosphere.Density = 0
+        Atmosphere.Haze = 0
+        Atmosphere.Glare = 0
+    end
 end
 })
