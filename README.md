@@ -1,4 +1,4 @@
---Script By @Azaleia_Scripts In YouTube
+--Script By @Azaleia_Scripts in YouTube
 
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
@@ -21,30 +21,45 @@ tab:CreateToggle({
         Foxy = Color3.fromRGB(255, 0, 0),
         Bonnie = Color3.fromRGB(0, 100, 255),
         Chica = Color3.fromRGB(255, 255, 0),
-        Goldenfreddy = Color3.fromRGB(255, 215, 0)
+        ["Golden Freddy"] = Color3.fromRGB(255, 215, 0),
+        GoldenFreddy = Color3.fromRGB(255, 215, 0)
     }
 
     Env.AnimatronicESPEnabled = value
 
-    local function ApplyESP(Model)
+    local function UpdateModel(Model)
         if not Model:IsA("Model") then return end
 
         local Color = Colors[Model.Name]
         if not Color then return end
 
-        -- Goldenfreddy pode não ter Humanoid
         local Humanoid = Model:FindFirstChild("Humanoid", true)
+        if not Humanoid or not Humanoid:IsA("Humanoid") then return end
 
-        if Model.Name ~= "Goldenfreddy" then
-            if not Humanoid or not Humanoid:IsA("Humanoid") then
-                return
-            end
+        local Highlight = Model:FindFirstChild("AnimatronicESP")
+        local Billboard = Model:FindFirstChild("AnimatronicName")
+
+        if Highlight then
+            Highlight.Enabled = Env.AnimatronicESPEnabled
         end
 
-        local Root =
-            Model:FindFirstChild("HumanoidRootPart", true)
+        if Billboard then
+            Billboard.Enabled = Env.AnimatronicESPEnabled
+        end
+    end
+
+    local function ApplyESP(Model)
+        if not Env.AnimatronicESPEnabled then return end
+        if not Model:IsA("Model") then return end
+
+        local Color = Colors[Model.Name]
+        if not Color then return end
+
+        local Humanoid = Model:FindFirstChild("Humanoid", true)
+        if not Humanoid or not Humanoid:IsA("Humanoid") then return end
+
+        local Root = Model:FindFirstChild("HumanoidRootPart", true)
             or Model:FindFirstChild("Head", true)
-            or Model:FindFirstChildWhichIsA("BasePart", true)
             or Model.PrimaryPart
 
         if not Root then return end
@@ -84,35 +99,42 @@ tab:CreateToggle({
             Text.Parent = Billboard
         end
 
-        Highlight.Enabled = Env.AnimatronicESPEnabled
-        Billboard.Enabled = Env.AnimatronicESPEnabled
+        Highlight.Enabled = true
+        Billboard.Enabled = true
     end
 
-    -- Procura todos os animatrônicos existentes
+    -- Atualiza os que já existem
     for _, Object in ipairs(Workspace:GetDescendants()) do
         if Object:IsA("Model") then
-            ApplyESP(Object)
+            if value then
+                ApplyESP(Object)
+            else
+                UpdateModel(Object)
+            end
         end
     end
 
-    -- Detecta novos animatrônicos
+    -- Cria apenas uma conexão
     if not Env.AnimatronicESPConnection then
-        Env.AnimatronicESPConnection =
-            Workspace.DescendantAdded:Connect(function(Object)
-                task.wait()
+        Env.AnimatronicESPConnection = Workspace.DescendantAdded:Connect(function(Object)
+            task.wait()
 
-                local Model
+            if not Env.AnimatronicESPEnabled then
+                return
+            end
 
-                if Object:IsA("Model") then
-                    Model = Object
-                else
-                    Model = Object:FindFirstAncestorOfClass("Model")
-                end
+            local Model
 
-                if Model then
-                    ApplyESP(Model)
-                end
-            end)
+            if Object:IsA("Model") then
+                Model = Object
+            else
+                Model = Object:FindFirstAncestorOfClass("Model")
+            end
+
+            if Model then
+                ApplyESP(Model)
+            end
+        end)
     end
 end
 })
@@ -388,3 +410,237 @@ tab:CreateToggle({
 end
 })
 
+tab:CreateToggle({
+    name = "Show Time",
+    callback = function(value)
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local CoreGui = game:GetService("CoreGui")
+    local RunService = game:GetService("RunService")
+
+    local ClockTime = ReplicatedStorage.GameSettings.Coisas.ClockTime
+    local Minutes = ClockTime.Minutes
+    local Seconds = ClockTime.Seconds
+
+    if not getgenv().ClockSystemStarted then
+        getgenv().ClockSystemStarted = true
+
+        getgenv().ClockUpdateConnection = RunService.Heartbeat:Connect(function()
+            local gui = CoreGui:FindFirstChild("GameClock")
+
+            if gui then
+                local clockLabel = gui:FindFirstChild("Clock")
+
+                if clockLabel then
+                    clockLabel.Text = string.format(
+                        "%d:%02d",
+                        Minutes.Value,
+                        Seconds.Value
+                    )
+                end
+            end
+        end)
+    end
+
+    if value then
+        local oldGui = CoreGui:FindFirstChild("GameClock")
+
+        if oldGui then
+            oldGui:Destroy()
+        end
+
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "GameClock"
+        gui.ResetOnSpawn = false
+        gui.Parent = CoreGui
+
+        local clockLabel = Instance.new("TextLabel")
+        clockLabel.Name = "Clock"
+        clockLabel.Size = UDim2.new(0, 75, 0, 25)
+        clockLabel.Position = UDim2.new(0.5, -37.5, 0, 20)
+        clockLabel.BackgroundTransparency = 1
+        clockLabel.TextColor3 = Color3.new(1, 1, 1)
+        clockLabel.TextStrokeTransparency = 0
+        clockLabel.TextScaled = true
+        clockLabel.Font = Enum.Font.GothamBold
+        clockLabel.Text = string.format(
+            "%d:%02d",
+            Minutes.Value,
+            Seconds.Value
+        )
+        clockLabel.Parent = gui
+
+    else
+        local gui = CoreGui:FindFirstChild("GameClock")
+
+        if gui then
+            gui:Destroy()
+        end
+    end
+end
+})
+
+tab:CreateToggle({
+    name = "Show Battery of Music Box",
+    callback = function(value)
+    local Workspace = game:GetService("Workspace")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+    local ClockSound = Workspace.Game.Clock.Part.Clock
+    local MusicBox = ReplicatedStorage.GameSettings.Coisas.Puppet.MusicBox
+
+    -- Inicia o contador do relógio assim que o script é executado
+    if not getgenv().GameClockStarted then
+        getgenv().GameClockStarted = true
+        getgenv().GameClockMinutes = getgenv().GameClockMinutes or 0
+
+        getgenv().ClockConnection = ClockSound.Played:Connect(function()
+            if getgenv().GameClockMinutes < 360 then
+                getgenv().GameClockMinutes += 1
+            end
+        end)
+    end
+
+    -- Cria a GUI
+    if value then
+        local oldGui = game:GetService("CoreGui"):FindFirstChild("GameClock")
+        if oldGui then
+            oldGui:Destroy()
+        end
+
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "GameClock"
+        gui.ResetOnSpawn = false
+        gui.Parent = game:GetService("CoreGui")
+
+        -- HORÁRIO
+        local clockLabel = Instance.new("TextLabel")
+        clockLabel.Name = "Clock"
+        clockLabel.Size = UDim2.new(0, 75, 0, 25)
+        clockLabel.Position = UDim2.new(0.5, -37.5, 0, 20)
+        clockLabel.BackgroundTransparency = 1
+        clockLabel.TextColor3 = Color3.new(1, 1, 1)
+        clockLabel.TextStrokeTransparency = 0
+        clockLabel.TextScaled = true
+        clockLabel.Font = Enum.Font.GothamBold
+        clockLabel.Parent = gui
+
+        -- PORCENTAGEM DA MUSIC BOX
+        local musicLabel = Instance.new("TextLabel")
+        musicLabel.Name = "MusicBox"
+        musicLabel.Size = UDim2.new(0, 60, 0, 18)
+        musicLabel.Position = UDim2.new(0.5, -30, 0, 45)
+        musicLabel.BackgroundTransparency = 1
+        musicLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+        musicLabel.TextStrokeTransparency = 0
+        musicLabel.TextScaled = true
+        musicLabel.Font = Enum.Font.GothamBold
+        musicLabel.Parent = gui
+
+        -- Atualiza o horário
+        local function updateClock()
+            local total = getgenv().GameClockMinutes
+
+            local hour = math.floor(total / 60)
+            local minute = total % 60
+
+            if hour == 0 then
+                hour = 12
+            end
+
+            clockLabel.Text = string.format("%d:%02d", hour, minute)
+        end
+
+        -- Atualiza a porcentagem
+        local function updateMusicBox()
+            local value = MusicBox.Value
+            musicLabel.Text = tostring(value) .. "%"
+        end
+
+        updateClock()
+        updateMusicBox()
+
+        -- Atualiza a porcentagem a cada segundo
+        getgenv().MusicBoxConnection = task.spawn(function()
+            while gui.Parent do
+                updateMusicBox()
+                task.wait(1)
+            end
+        end)
+
+    else
+        -- Apenas esconde a GUI.
+        -- O relógio e a MusicBox continuam sendo monitorados.
+        local gui = game:GetService("CoreGui"):FindFirstChild("GameClock")
+
+        if gui then
+            gui:Destroy()
+        end
+    end
+end
+})
+
+tab:CreateToggle({
+    name = "Show Energy",
+    callback = function(value)
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local CoreGui = game:GetService("CoreGui")
+    local RunService = game:GetService("RunService")
+
+    local Fusivel = ReplicatedStorage.GameSettings.Coisas.Fusivel
+
+    local Energia1 = Fusivel.EnergiaLugar1
+    local Energia2 = Fusivel.EnergiaLugar2
+    local Energia3 = Fusivel.EnergiaLugar3
+
+    if not getgenv().EnergySystemStarted then
+        getgenv().EnergySystemStarted = true
+
+        getgenv().EnergyUpdateConnection = RunService.Heartbeat:Connect(function()
+            local gui = CoreGui:FindFirstChild("EnergyDisplay")
+
+            if gui then
+                gui.Energia1.Text = tostring(Energia1.Value) .. "%"
+                gui.Energia2.Text = tostring(Energia2.Value) .. "%"
+                gui.Energia3.Text = tostring(Energia3.Value) .. "%"
+            end
+        end)
+    end
+
+    if value then
+        local oldGui = CoreGui:FindFirstChild("EnergyDisplay")
+        if oldGui then
+            oldGui:Destroy()
+        end
+
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "EnergyDisplay"
+        gui.ResetOnSpawn = false
+        gui.Parent = CoreGui
+
+        local function criarLabel(nome, posY, valor)
+            local label = Instance.new("TextLabel")
+            label.Name = nome
+            label.Size = UDim2.new(0, 40, 0, 13)
+            label.Position = UDim2.new(0.5, 42, 0, posY)
+            label.BackgroundTransparency = 1
+            label.TextColor3 = Color3.fromRGB(255, 255, 0)
+            label.TextStrokeTransparency = 0
+            label.TextScaled = true
+            label.Font = Enum.Font.GothamBold
+            label.Text = tostring(valor.Value) .. "%"
+            label.Parent = gui
+        end
+
+        criarLabel("Energia1", 20, Energia1)
+        criarLabel("Energia2", 34, Energia2)
+        criarLabel("Energia3", 48, Energia3)
+
+    else
+        local gui = CoreGui:FindFirstChild("EnergyDisplay")
+
+        if gui then
+            gui:Destroy()
+        end
+    end
+end
+})
