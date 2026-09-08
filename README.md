@@ -1,4 +1,4 @@
---# Script-Eternal-Nights-by-Azaleia_Scripts-in-YouTube
+--Script By @Azaleia_Scripts in Youtube
 
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
@@ -14,6 +14,7 @@ tab:CreateToggle({
     name = "Animatronics ESP",
     callback = function(value)
     local Workspace = game:GetService("Workspace")
+    local Env = getgenv()
 
     local Colors = {
         Freddy = Color3.fromRGB(101, 67, 33),
@@ -22,16 +23,46 @@ tab:CreateToggle({
         Chica = Color3.fromRGB(255, 255, 0)
     }
 
-    local Connections = {}
+    Env.AnimatronicESPEnabled = value
 
-    local function ApplyESP(Model)
+    local function UpdateModel(Model)
         if not Model:IsA("Model") then return end
 
         local Color = Colors[Model.Name]
         if not Color then return end
 
         local Humanoid = Model:FindFirstChild("Humanoid", true)
-        if not Humanoid or not Humanoid:IsA("Humanoid") then return end
+        if not Humanoid then return end
+
+        local Highlight = Model:FindFirstChild("AnimatronicESP")
+        local Billboard = Model:FindFirstChild("AnimatronicName")
+
+        if Highlight then
+            Highlight.Enabled = Env.AnimatronicESPEnabled
+        end
+
+        if Billboard then
+            Billboard.Enabled = Env.AnimatronicESPEnabled
+        end
+    end
+
+    -- Atualiza TODOS, inclusive os que estão andando
+    for _, Object in ipairs(Workspace:GetDescendants()) do
+        if Object:IsA("Model") then
+            UpdateModel(Object)
+        end
+    end
+
+    -- Cria ESP somente se ainda não existir
+    local function ApplyESP(Model)
+        if not Env.AnimatronicESPEnabled then return end
+        if not Model:IsA("Model") then return end
+
+        local Color = Colors[Model.Name]
+        if not Color then return end
+
+        local Humanoid = Model:FindFirstChild("Humanoid", true)
+        if not Humanoid then return end
 
         local Root = Model:FindFirstChild("HumanoidRootPart", true)
             or Model:FindFirstChild("Head", true)
@@ -74,54 +105,37 @@ tab:CreateToggle({
             Text.Parent = Billboard
         end
 
-        Highlight.Enabled = value
-        Billboard.Enabled = value
+        Highlight.Enabled = true
+        Billboard.Enabled = true
     end
 
-    local function Scan(container)
-        for _, Object in ipairs(container:GetDescendants()) do
-            if Object:IsA("Model") then
-                ApplyESP(Object)
-            end
-        end
-    end
-
-    -- Os que já existem dentro do Game.Animatronics
-    local Animatronics = Workspace:FindFirstChild("Game")
-        and Workspace.Game:FindFirstChild("Animatronics")
-        and Workspace.Game.Animatronics:FindFirstChild("Animatronics")
-
-    if Animatronics then
-        Scan(Animatronics)
-
-        table.insert(Connections, Animatronics.DescendantAdded:Connect(function(Object)
+    -- Só cria a conexão uma vez
+    if not Env.AnimatronicESPConnection then
+        Env.AnimatronicESPConnection = Workspace.DescendantAdded:Connect(function(Object)
             task.wait()
-            if Object:IsA("Model") then
-                ApplyESP(Object)
-            else
-                local Model = Object:FindFirstAncestorOfClass("Model")
-                if Model then
-                    ApplyESP(Model)
-                end
+
+            if not Env.AnimatronicESPEnabled then
+                return
             end
-        end))
-    end
 
-    -- Os que aparecem diretamente no Workspace
-    Scan(Workspace)
+            local Model = Object:IsA("Model")
+                and Object
+                or Object:FindFirstAncestorOfClass("Model")
 
-    table.insert(Connections, Workspace.DescendantAdded:Connect(function(Object)
-        task.wait()
-
-        if Object:IsA("Model") then
-            ApplyESP(Object)
-        else
-            local Model = Object:FindFirstAncestorOfClass("Model")
             if Model then
                 ApplyESP(Model)
             end
+        end)
+    end
+
+    -- Quando ligar, garante que todos apareçam
+    if value then
+        for _, Object in ipairs(Workspace:GetDescendants()) do
+            if Object:IsA("Model") then
+                ApplyESP(Object)
+            end
         end
-    end))
+    end
 end
 })
 
