@@ -1,4 +1,4 @@
---Script Made By @Azaleia_Scripts In YouTube
+--Script By @Azaleia_Scripts In YouTube
 
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/gen2"))()
 
@@ -21,45 +21,30 @@ tab:CreateToggle({
         Foxy = Color3.fromRGB(255, 0, 0),
         Bonnie = Color3.fromRGB(0, 100, 255),
         Chica = Color3.fromRGB(255, 255, 0),
-        ["Golden Freddy"] = Color3.fromRGB(255, 215, 0),
-        GoldenFreddy = Color3.fromRGB(255, 215, 0)
+        Goldenfreddy = Color3.fromRGB(255, 215, 0)
     }
 
     Env.AnimatronicESPEnabled = value
 
-    local function UpdateModel(Model)
-        if not Model:IsA("Model") then return end
-
-        local Color = Colors[Model.Name]
-        if not Color then return end
-
-        local Humanoid = Model:FindFirstChild("Humanoid", true)
-        if not Humanoid or not Humanoid:IsA("Humanoid") then return end
-
-        local Highlight = Model:FindFirstChild("AnimatronicESP")
-        local Billboard = Model:FindFirstChild("AnimatronicName")
-
-        if Highlight then
-            Highlight.Enabled = Env.AnimatronicESPEnabled
-        end
-
-        if Billboard then
-            Billboard.Enabled = Env.AnimatronicESPEnabled
-        end
-    end
-
     local function ApplyESP(Model)
-        if not Env.AnimatronicESPEnabled then return end
         if not Model:IsA("Model") then return end
 
         local Color = Colors[Model.Name]
         if not Color then return end
 
+        -- Goldenfreddy pode não ter Humanoid
         local Humanoid = Model:FindFirstChild("Humanoid", true)
-        if not Humanoid or not Humanoid:IsA("Humanoid") then return end
 
-        local Root = Model:FindFirstChild("HumanoidRootPart", true)
+        if Model.Name ~= "Goldenfreddy" then
+            if not Humanoid or not Humanoid:IsA("Humanoid") then
+                return
+            end
+        end
+
+        local Root =
+            Model:FindFirstChild("HumanoidRootPart", true)
             or Model:FindFirstChild("Head", true)
+            or Model:FindFirstChildWhichIsA("BasePart", true)
             or Model.PrimaryPart
 
         if not Root then return end
@@ -99,42 +84,35 @@ tab:CreateToggle({
             Text.Parent = Billboard
         end
 
-        Highlight.Enabled = true
-        Billboard.Enabled = true
+        Highlight.Enabled = Env.AnimatronicESPEnabled
+        Billboard.Enabled = Env.AnimatronicESPEnabled
     end
 
-    -- Atualiza os que já existem
+    -- Procura todos os animatrônicos existentes
     for _, Object in ipairs(Workspace:GetDescendants()) do
         if Object:IsA("Model") then
-            if value then
-                ApplyESP(Object)
-            else
-                UpdateModel(Object)
-            end
+            ApplyESP(Object)
         end
     end
 
-    -- Cria apenas uma conexão
+    -- Detecta novos animatrônicos
     if not Env.AnimatronicESPConnection then
-        Env.AnimatronicESPConnection = Workspace.DescendantAdded:Connect(function(Object)
-            task.wait()
+        Env.AnimatronicESPConnection =
+            Workspace.DescendantAdded:Connect(function(Object)
+                task.wait()
 
-            if not Env.AnimatronicESPEnabled then
-                return
-            end
+                local Model
 
-            local Model
+                if Object:IsA("Model") then
+                    Model = Object
+                else
+                    Model = Object:FindFirstAncestorOfClass("Model")
+                end
 
-            if Object:IsA("Model") then
-                Model = Object
-            else
-                Model = Object:FindFirstAncestorOfClass("Model")
-            end
-
-            if Model then
-                ApplyESP(Model)
-            end
-        end)
+                if Model then
+                    ApplyESP(Model)
+                end
+            end)
     end
 end
 })
@@ -391,8 +369,8 @@ end
 local tab = window:CreateTab({ name = "Misc"})
 
 
-tab:CreateButton({
-    name = "FullBlight",
+tab:CreateToggle({
+    name = "Fulllight",
     callback = function()
     local Lighting = game:GetService("Lighting")
 
@@ -409,3 +387,4 @@ tab:CreateButton({
     end
 end
 })
+
